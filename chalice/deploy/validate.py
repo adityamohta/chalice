@@ -111,6 +111,13 @@ def validate_routes(routes):
         _validate_cors_for_route(route_name, methods)
 
 
+def validate_websocket_handlers(websocket_handlers: Dict[str, Any]) -> None:
+    for route_key, _ in websocket_handlers.items():
+        if route_key not in ["$connect", "$disconnect", "$default"]:
+            raise ValueError("websocket route key must be one of "
+                             "'$connect', '$disconnect', '$default'")
+
+
 def validate_python_version(config, actual_py_version=None):
     # type: (Config, Optional[str]) -> None
     """Validate configuration matches a specific python version.

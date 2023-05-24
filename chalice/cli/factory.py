@@ -25,7 +25,7 @@ from chalice.constants import DEFAULT_ENDPOINT_TYPE
 from chalice.logs import LogRetriever, LogEventGenerator
 from chalice.logs import FollowLogEventGenerator
 from chalice.logs import BaseLogEventGenerator
-from chalice import local
+from chalice import local, websocket_server
 from chalice.utils import UI  # noqa
 from chalice.utils import PipeReader  # noqa
 from chalice.deploy import deployer  # noqa
@@ -334,6 +334,13 @@ class CLIFactory(object):
         config_file = os.path.join(self.project_dir, '.chalice', 'config.json')
         with open(config_file) as f:
             return json.loads(f.read())
+
+    def create_websocket_server(
+            self, app_obj: Chalice, config: Config, host: str, port: int
+    ) -> websocket_server.WebSocketDevServer:
+        return websocket_server.create_websocket_server(
+            app_obj, config, host, port
+        )
 
     def create_local_server(
         self, app_obj: Chalice, config: Config, host: str, port: int

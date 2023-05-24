@@ -27,11 +27,13 @@ from chalice.cli.factory import NoSuchFunctionError
 from chalice.config import Config  # noqa
 from chalice.logs import display_logs, LogRetrieveOptions
 from chalice.utils import create_zip_file
-from chalice.deploy.validate import validate_routes, validate_python_version
+from chalice.deploy.validate import validate_routes, validate_python_version, \
+    validate_websocket_handlers
 from chalice.deploy.validate import ExperimentalFeatureError
 from chalice.utils import UI, serialize_to_json
 from chalice.constants import DEFAULT_STAGE_NAME
 from chalice.local import LocalDevServer  # noqa
+from chalice.websocket_server import WebSocketDevServer
 from chalice.constants import DEFAULT_HANDLER_NAME
 from chalice.invoke import UnhandledLambdaError
 from chalice.deploy.swagger import TemplatedSwaggerGenerator
@@ -107,11 +109,24 @@ def _configure_cli_env_vars():
 @click.option('--autoreload/--no-autoreload',
               default=True,
               help='Automatically restart server when code changes.')
+@click.option('--websocket', '-w', is_flag=True, default=False,
+              type=click.BOOL, help='Starts websocket server.')
 @click.pass_context
-def local(ctx, host='127.0.0.1', port=8000, stage=DEFAULT_STAGE_NAME,
-          autoreload=True):
-    # type: (click.Context, str, int, str, bool) -> None
-    factory = ctx.obj['factory']  # type: CLIFactory
+def local(
+        ctx: click.Context,
+        host: str = '127.0.0.1',
+        port: int = 8000,
+        stage: str = DEFAULT_STAGE_NAME,
+        autoreload: bool = True,
+        websocket: bool = False) -> None:
+    factory: CLIFactory = ctx.obj['factory']
+
+    if websocket:
+        # Runs websocket server if --websocket flag is passed.
+        # Doesn't support autoreload for now.
+        run_websocket_server(factory, host, port, stage)
+        return
+
     from chalice.cli import reloader
     # We don't create the server here because that will bind the
     # socket and we only want to do this in the worker process.
@@ -154,6 +169,26 @@ def run_local_server(factory, host, port, stage):
     # type: (CLIFactory, str, int, str) -> None
     server = create_local_server(factory, host, port, stage)
     server.serve_forever()
+
+
+def create_websocket_server(factory: CLIFactory, host: str, port: int,
+                            stage: str) -> WebSocketDevServer:
+    config = factory.create_config_obj(
+        chalice_stage_name=stage
+    )
+    app_obj = config.chalice_app
+    # Check that `chalice deploy` would let us deploy these routes, otherwise
+    # there is no point in testing locally.
+    websocket_handlers = config.chalice_app.websocket_handlers
+    validate_websocket_handlers(websocket_handlers)
+    server = factory.create_websocket_server(app_obj, config, host, port)
+    return server
+
+
+def run_websocket_server(factory: CLIFactory, host: str, port: int,
+                         stage: str) -> None:
+    server = create_websocket_server(factory, host, port, stage)
+    server.run_forever()
 
 
 @cli.command()
