@@ -102,8 +102,8 @@ def _configure_cli_env_vars():
 @cli.command()
 @click.option('--host', default='127.0.0.1')
 @click.option('--port', default=8000, type=click.INT)
-@click.option('--ws-host')
-@click.option('--ws-port', type=click.INT)
+@click.option('--ws-host', default='127.0.0.1')
+@click.option('--ws-port', default=8001, type=click.INT)
 @click.option('--stage', default=DEFAULT_STAGE_NAME,
               help='Name of the Chalice stage for the local server to use.')
 @click.option('--autoreload/--no-autoreload',
@@ -111,18 +111,10 @@ def _configure_cli_env_vars():
               help='Automatically restart server when code changes.')
 @click.pass_context
 def local(ctx, host='127.0.0.1', port=8000, stage=DEFAULT_STAGE_NAME,
-          autoreload=True, ws_host=None, ws_port=None):
-    # type: (click.Context, str, int, str, bool,
-    #        Optional[str],
-    #        Optional[port]) -> None
+          autoreload=True, ws_host='127.0.0.1', ws_port=8001):
+    # type: (click.Context, str, int, str, bool, str, int) -> None
     factory = ctx.obj['factory']  # type: CLIFactory
     from chalice.cli import reloader
-    # We don't create the server here because that will bind the
-    # socket and we only want to do this in the worker process.
-    if ws_host is None:
-        ws_host = host
-    if ws_port is None:
-        ws_port = port + 1
     server_factory = functools.partial(
         create_local_server, factory, host, port, stage, ws_host, ws_port)
     # When running `chalice local`, a stdout logger is configured
@@ -141,6 +133,8 @@ def local(ctx, host='127.0.0.1', port=8000, stage=DEFAULT_STAGE_NAME,
         # recommended way to do this is to use sys.exit() directly,
         # see: https://github.com/pallets/click/issues/747
         sys.exit(rc)
+    # We don't create the weboscket server here because that will bind
+    # the socket and we only want to do this in the worker process.
     run_local_server(factory, host, port, stage, ws_host, ws_port)
 
 
