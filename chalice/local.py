@@ -5,7 +5,6 @@ This is intended only for local development purposes.
 """
 from __future__ import print_function
 from __future__ import annotations
-import time
 import datetime
 import re
 import threading
@@ -833,7 +832,20 @@ class ChaliceWsHandler:
             "requestTimeEpoch":
                 int(time.mktime(connection_info["ConnectedAt"].timetuple())),
             "apiId": "local",
+        }
 
+    def _get_query_string(self,
+                          websocket: WebsocketConnection) -> Dict[str, Any]:
+        query_string = ""
+        if "?" in websocket.request.path:
+            query_string = websocket.request.path.split("?")[-1]
+        multi_query_string_parameters = parse_qs(query_string)
+        query_string_parameters = {}
+        for key, value in multi_query_string_parameters.items():
+            query_string_parameters[key] = value[0]
+        return {
+            "queryStringParameters": query_string_parameters,
+            "multiValueQueryStringParameters": multi_query_string_parameters,
         }
 
     def _get_base_event(self,
@@ -843,6 +855,7 @@ class ChaliceWsHandler:
             event = self._get_headers(websocket)
         else:
             event = {}
+        event = {**event, **self._get_query_string(websocket)}
         event["requestContext"] = self._get_request_context(websocket)
         event["isBase64Encoded"] = False
         return event

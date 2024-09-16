@@ -112,7 +112,9 @@ def _configure_cli_env_vars():
 @click.pass_context
 def local(ctx, host='127.0.0.1', port=8000, stage=DEFAULT_STAGE_NAME,
           autoreload=True, ws_host=None, ws_port=None):
-    # type: (click.Context, str, int, str, bool, Optional[str], Optional[port]) -> None
+    # type: (click.Context, str, int, str, bool,
+    #        Optional[str],
+    #        Optional[port]) -> None
     factory = ctx.obj['factory']  # type: CLIFactory
     from chalice.cli import reloader
     # We don't create the server here because that will bind the
