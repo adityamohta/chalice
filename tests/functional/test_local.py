@@ -61,6 +61,8 @@ class ThreadedLocalServer(Thread):
         self._config = None
         self._host = host
         self._port = port
+        self._ws_host = host
+        self._ws_port = port + 1
         self._server = None
         self._server_ready = Event()
 
@@ -73,7 +75,9 @@ class ThreadedLocalServer(Thread):
 
     def run(self):
         self._server = create_local_server(
-            self._app_object, self._config, self._host, self._port)
+            self._app_object, self._config, self._host,
+            self._port, self._ws_host, self._ws_port
+        )
         self._server_ready.set()
         self._server.serve_forever()
 
@@ -84,7 +88,7 @@ class ThreadedLocalServer(Thread):
 
     def shutdown(self):
         if self._server is not None:
-            self._server.server.shutdown()
+            self._server.http_server.shutdown()
 
 
 @pytest.fixture
